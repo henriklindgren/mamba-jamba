@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mamba-jamba-deployment
+  namespace: my-namespace
+  clusterName: my-cluster
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: mamba-jamba
+    spec:
+      containers:
+        - name: mamba-jamba-container
+          image: gcr.io/my-project/mamba-jamba:latest
+          imagePullPolicy: Always
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 999
+            runAsGroup: 999
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - mountPath: /var/opt/pypiserver/packages
+              name: pypiserver-packages
+          resources:
+            requests:
+              cpu: "300m"
+              memory: "1G"
+            limits:
+              cpu: "1"
+              memory: "2G"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: pypiserver-packages
+          # FIXME implement storage of your choice here.
+      terminationGracePeriodSeconds: 30
+  selector:
+    matchLabels:
+      app: mamba-jamba
